@@ -2,6 +2,7 @@
 //http服务入口
 use actix_web::{web, App, HttpServer};
 mod scaling;
+mod metrics;
 use crate::scaling::{service_query::ExternalServiceQuery, alert_handler};
 use reqwest::Url;
 #[actix_web::main]
