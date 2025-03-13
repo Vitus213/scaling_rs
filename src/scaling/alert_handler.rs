@@ -2,7 +2,7 @@
 // alert_handler.rs
 use actix_web::{web, HttpResponse, Responder};
 use super::service_query::ServiceQuery;// Add this line to import ScalingError
-use super::prometheus::PrometheusAlert;
+use crate::metrics::prometheus::PrometheusAlert;
 use super::scaling_error::ScalingError;
 
 pub async fn handle_alert(
