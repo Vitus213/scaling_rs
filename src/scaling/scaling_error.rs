@@ -17,6 +17,6 @@ pub enum ScalingError {
     LabelParse(String), 
 
     #[error("No error")]
-    None, // 添加一个表示“无错误”的变体
+    None,  // 添加一个表示“无错误”的变体
 }
 

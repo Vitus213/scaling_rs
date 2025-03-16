@@ -17,7 +17,6 @@ impl FunctionCache {
             ttl,
         }
     }
-    
     pub async  fn get(
         &self,
         function: &str,

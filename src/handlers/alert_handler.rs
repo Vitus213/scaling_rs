@@ -1,9 +1,9 @@
 //alertmanger 处理器实现
 // alert_handler.rs
 use actix_web::{web, HttpResponse, Responder};
-use super::service_query::ServiceQuery;// Add this line to import ScalingError
 use crate::metrics::prometheus::PrometheusAlert;
-use super::scaling_error::ScalingError;
+use crate::scaling::service_query::ServiceQuery;
+use crate::scaling::scaling_error::ScalingError;
 
 pub async fn handle_alert(
     payload: actix_web::web::Json<PrometheusAlert>,    //接受报警数据，alertmanger发送webhook,json形式
@@ -47,7 +47,7 @@ async fn scale_service(
     };
     let resp = service_query.get_replicas(function_name, namespace).await?;
     
-    let new_replicas = super::service_query::calculate_replicas(
+    let new_replicas = crate::scaling::service_query::calculate_replicas(
         status,
         resp.replicas,
         resp.min_replicas,
