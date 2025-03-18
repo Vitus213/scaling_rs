@@ -5,6 +5,8 @@ use std::time::{Duration, Instant};
 use super::{service_query::ServiceQueryResponse,scaling_error::ScalingError};
 use super::service_query::ServiceQuery;
 use std::collections::HashMap;
+use tokio::time::{sleep,};
+
 pub struct FunctionCache {
     cache: DashMap<String, (ServiceQueryResponse, Instant)>,
     ttl: Duration,
@@ -17,12 +19,13 @@ impl FunctionCache {
             ttl,
         }
     }
-    pub async  fn get(
+    
+    pub async fn get(
         &self,
         function: &str,
         namespace: &str,
     ) -> (ServiceQueryResponse,bool) {
-        let key = format!("{}:{}", namespace, function);
+        let key = format!("{}.{}", function, namespace);
         let queryRes  = ServiceQueryResponse {
             replicas: 0,
             min_replicas: 0,
@@ -43,7 +46,39 @@ impl FunctionCache {
             return (queryRes,false);
         }
     }
-    pub  fn set(){
+    pub async fn set(&self,function: &str, namespace: &str, queryRes: &ServiceQueryResponse){
+        let key = format!("{}.{}", function, namespace);
+        self.cache.insert(key,(queryRes.clone(),Instant::now()));
+    }
+}
+#[cfg(test)]
+mod tests {
+    use actix_web::rt::time;
+
+    use super::*;
+
+    #[actix_rt::test]
+    async fn test_lastRefreshSet(){
+        let before = time::Instant::now();
+        let fnName = "echo";
+        let namespace = "";
+        let cache = FunctionCache{
+            cache: DashMap::new(),
+            ttl: Duration::from_millis(1)
+        };
+        let sqr = ServiceQueryResponse {
+            replicas: 1,
+            max_replicas: 2,
+            min_replicas: 1,
+            scaling_factor: 1,
+            available_replicas: 1,
+            annotations: HashMap::new(),
+        };
+        cache.set(fnName, namespace, &sqr).await;
+        time::sleep(Duration::from_millis(2)).await;
+        let (a,b)=cache.get(fnName, namespace).await;
+        assert_eq!(b,false);
 
     }
+    
 }
