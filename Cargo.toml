@@ -13,3 +13,5 @@ log = "0.4"
 env_logger = "0.11"  # 或者选择其他日志实现库
 thiserror = "1.0"
 dashmap = "6.1.0"
+mockito = "0.31.0"  #模拟服务端(mock server)返回特定响应体
+tokio = {version = "1" , features = ["full"]}

@@ -1,5 +1,5 @@
 //alertmanger 处理器实现
-// alert_handler.rs
+// 没有实现handleAlerts，直接用handle_alert替代MakeAlertHandler
 use actix_web::{web, HttpResponse, Responder};
 use crate::metrics::prometheus::PrometheusAlert;
 use crate::scaling::service_query::ServiceQuery;

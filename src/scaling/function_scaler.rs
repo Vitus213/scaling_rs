@@ -1,3 +1,6 @@
+//FunctionScaler: 用于从零缩扩容函数
+//scale为makescalehandler的一个子函数，用于缩放函数
+//FunctionScaleResult: 用于返回缩放结果
 use super::{function_cache::FunctionCache, scaling_config::ScalingConfig, service_query::ServiceQuery};
 use std::time;
 use super::scaling_error::ScalingError;

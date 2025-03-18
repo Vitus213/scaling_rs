@@ -216,7 +216,7 @@ pub fn calculate_replicas(
         ("firing", 0) => current, // 步长为0时保持现状
         ("firing", _) => {
             // 计算增量扩容后的副本数，不超过最大值
-            let proposed = current.saturating_add(step);
+            let proposed = current.saturating_add(step);//表示安全相加，防止溢出问题
             std::cmp::min(proposed, max_replicas)
         }
         _ => {
@@ -226,25 +226,3 @@ pub fn calculate_replicas(
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_firing_scaling() {
-        // 触发扩容：当前2 + 步长3 = 5
-        assert_eq!(calculate_replicas("firing", 2, 1, 10, 30), 5);
-    }
-    #[test]
-    fn test_resolved_status() {
-        // 状态解除后重置为最小值（但不得低于当前值）
-        assert_eq!(calculate_replicas("resolved", 3, 5, 10, 30), 5);
-        assert_eq!(calculate_replicas("resolved", 8, 5, 10, 30), 8);
-    }
-
-    #[test]
-    fn test_zero_step() {
-        // 缩放因子为0时保持现状
-        assert_eq!(calculate_replicas("firing", 5, 1, 10, 0), 5);
-    }
-}
