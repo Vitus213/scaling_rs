@@ -5,5 +5,5 @@ pub struct ScalingConfig {
     pub FunctionPollInterva: time::Duration,
     pub CacheExpiry: time::Duration,
     pub ServiceQuery: ExternalServiceQuery,
-    pub SetScaleRetrie: u64
+    pub SetScaleRetries: u64
 }

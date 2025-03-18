@@ -1,11 +1,13 @@
 // had read Date: 3.10
 //http服务入口
+
 use actix_web::{web, App, HttpServer};
 mod scaling;
 mod metrics;
 use crate::scaling::{service_query::ExternalServiceQuery, alert_handler};
 use reqwest::Url;
 #[actix_web::main]
+
 async fn main() -> std::io::Result<()> {
     // 初始化 ServiceQuery
     let service_query = ExternalServiceQuery::new(

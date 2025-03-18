@@ -19,4 +19,5 @@ pub enum ScalingError {
     #[error("No error")]
     None, // 添加一个表示“无错误”的变体
 }
+//如果后面添加了错误类型需要去 scale函数里的几个枚举把分支加上
 
