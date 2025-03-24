@@ -87,4 +87,42 @@ mod tests {
         // 验证返回值
         assert!(result.is_ok());
     }
+    #[tokio::test]
+    async fn test_get_replicas_500(){
+            let _mock = mock("GET", "/system/function/test-service")
+            .match_query(Matcher::AllOf(vec![
+                Matcher::UrlEncoded("namespace".into(), "test-namespace".into()),
+                Matcher::UrlEncoded("usage".into(), "false".into()),
+            ]))
+            .with_status(200)
+            .with_body(r#"
+                {
+                    "replicas": 3,
+                    "available_replicas": 3,
+                    "labels": {
+                        "min_scale": "1",
+                        "max_scale": "10",
+                        "scaling_factor": "20"
+                    },
+                    "annotations": {}
+                }
+            "#)
+            .create();
+
+        // 创建 ExternalServiceQuery 实例
+        let base_url = Url::parse(&mockito::server_url()).unwrap();
+        let service_query = ExternalServiceQuery::new(base_url, None);
+
+        // 调用 get_replicas 方法
+        let response = service_query
+            .get_replicas("test-service", "test-namespace")
+            .await
+            .unwrap();
+
+        // 验证返回值
+        assert_eq!(response.replicas, 3);
+        assert_eq!(response.min_replicas, 1);
+        assert_eq!(response.max_replicas, 10);
+        assert_eq!(response.scaling_factor, 20);
+    }
 }
