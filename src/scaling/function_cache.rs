@@ -58,7 +58,7 @@ mod tests {
     use super::*;
 
     #[actix_rt::test]
-    async fn test_lastRefreshSet(){
+    async fn test_CacheExpiresIn1MS(){
         let before = time::Instant::now();
         let fnName = "echo";
         let namespace = "";
@@ -78,7 +78,49 @@ mod tests {
         time::sleep(Duration::from_millis(2)).await;
         let (a,b)=cache.get(fnName, namespace).await;
         assert_eq!(b,false);
+    }
+    #[actix_rt::test]
+    async fn Test_CacheGivesHitWithLongExpiry () {
+        let fnName = "echo";
+        let namespace = "";
+        let cache = FunctionCache{
+            cache: DashMap::new(),
+            ttl: Duration::from_millis(500)
+        };
+        let sqr = ServiceQueryResponse {
+            replicas: 1,
+            max_replicas: 2,
+            min_replicas: 1,
+            scaling_factor: 1,
+            available_replicas: 1,
+            annotations: HashMap::new(),
+        };
+        cache.set(fnName, namespace, &sqr).await;
+        let (a,b)=cache.get(fnName, namespace).await;
+        assert_eq!(b,true);
 
     }
-    
+    #[actix_rt::test]
+    async fn Test_CacheFunctionNotExist (){
+        let fnName = "echo";
+        let namespace = "";
+        let testName = "burt";
+        let cache = FunctionCache{
+            cache: DashMap::new(),
+            ttl: Duration::from_millis(100)
+        };
+        let sqr = ServiceQueryResponse {
+            replicas: 1,
+            max_replicas: 2,
+            min_replicas: 1,
+            scaling_factor: 1,
+            available_replicas: 1,
+            annotations: HashMap::new(),
+        };
+        cache.set(fnName, namespace, &sqr);
+        time::sleep(Duration::from_millis(2)).await;
+        let (a,b)=cache.get(testName, namespace).await;
+        assert_eq!(b,false);
+    }
 }
+

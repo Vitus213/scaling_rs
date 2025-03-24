@@ -15,7 +15,7 @@ pub struct FunctionScaler {
 }
 pub struct FunctionScaleResult{
     Available: bool,
-    Error:     ScalingError,
+    Error:     Result<(),ScalingError>,
 	Found:     bool,
 	Duration:  time::Duration
 }
@@ -33,7 +33,7 @@ impl FunctionScaler {
         if cachedResponse.available_replicas>0 && hit{
             return FunctionScaleResult {
                 Available: true,
-                Error : ScalingError::None,
+                Error : Ok(()),
                 Found : true,
                 Duration: start.elapsed(),
             }
@@ -45,7 +45,7 @@ impl FunctionScaler {
             Ok(v) =>   res =v,
             Err(err) => {
                 return FunctionScaleResult{
-                    Error:     err,
+                    Error:     Err((err)),
                     Available: false,
                     Found:     false,
                     Duration:  start.elapsed(),
@@ -54,7 +54,7 @@ impl FunctionScaler {
         };
         if res.available_replicas > 0{
             return FunctionScaleResult{
-                Error:     ScalingError::None,
+                Error:     Ok(()),
                 Available: true,
                 Found:     true,
                 Duration:  start.elapsed(),
@@ -68,86 +68,50 @@ impl FunctionScaler {
             }
             // In a retry-loop, first query desired replicas, then
 		    // set them if the value is still at 0.
-            let mut scale_result = ScalingError::None;
+            let mut scale_result = Ok(());
             let mut routine = |attempt: u64|async move {
                 let result = self.Config.ServiceQuery.get_replicas(functionName, namespace).await;
                 let res ;
                 match result{
-                     Err(err) => return err,
+                     Err(err) => return Err(err),
                     Ok(v) =>  res =v,
                 };
                 self.Cache.set(functionName,namespace,&res).await;
                 if res.available_replicas > 0{
-                    return ScalingError::None;
+                    return Ok(());
                 }
                 let setResult = self.Config.ServiceQuery.set_replicas(functionName, namespace, minReplicas).await;
                 println!("{}", format!("[Scale {}/{}] function={} 0 => {} requested",//log print to be done
                 attempt, self.Config.SetScaleRetrie, functionName, minReplicas));
                 match setResult {
-                    Ok(())=> return ScalingError::None,
+                    Ok(())=> return Ok(()),
                     Err(err)=> {
                         println!("{}",format!("unable to scale function {}, err: {}", functionName, err));
-                         return err
+                         return Err(err)
                     },
                 }
             };
             for i in 1..self.Config.SetScaleRetrie{
                 let res= routine(i).await;
                 match res{
-                    ScalingError::None=>{
+                    Ok(())=>{
                         break
                     },
-                    ScalingError::HttpError(a,b )=>{
-                        println!("Scale fail:{}/{},error:httperror{},{}",i,self.Config.SetScaleRetrie,a,b);
-                        let scale_result = ScalingError::HttpError((a), (b));
-                    }
-                    ScalingError::InvalidFactor(a)=>{
-                        println!("Scale fail:{}/{},error:invalid factor{}",i,self.Config.SetScaleRetrie,a);
-                        let scale_result = ScalingError::InvalidFactor((a));
-                    }
-                    ScalingError::JsonError(a)=>{
-                        println!("Scale fail:{}/{},error:json error{}",i,self.Config.SetScaleRetrie,a);
-                        let scale_result = ScalingError::JsonError((a));
-                    }
-                    ScalingError::LabelParse(a)=>{
-                        println!("Scale fail:{}/{},error:label parse{}",i,self.Config.SetScaleRetrie,a);
-                        let scale_result = ScalingError::LabelParse((a));
+                    Err(err)=>{
+                        println!("Scale fail:{}/{},error:{}",i,self.Config.SetScaleRetrie,err);
+                        let scale_result:Result<(), ScalingError> = Err(err);
                     }
                 }
                 sleep(self.Config.FunctionPollInterva).await;
             }
             match scale_result{
-                ScalingError::None=>{
+                Ok(())=>{
 
                 }
-                ScalingError::HttpError(a,b )=>{
+                Err(err)=>{
                     return FunctionScaleResult {
                         Available: false,
-                        Error : ScalingError::HttpError(a,b),
-                        Found: true,
-                        Duration: start.elapsed(),
-                    }
-                }
-                ScalingError::InvalidFactor(a)=>{
-                    return FunctionScaleResult {
-                        Available: false,
-                        Error : ScalingError::InvalidFactor(a),
-                        Found: true,
-                        Duration: start.elapsed(),
-                    }
-                }
-                ScalingError::JsonError(a)=>{
-                    return FunctionScaleResult {
-                        Available: false,
-                        Error : ScalingError::JsonError(a),
-                        Found: true,
-                        Duration: start.elapsed(),
-                    }
-                }
-                ScalingError::LabelParse(a)=>{
-                    return FunctionScaleResult {
-                        Available: false,
-                        Error : ScalingError::LabelParse(a),
+                        Error : Err(err),
                         Found: true,
                         Duration: start.elapsed(),
                     }
@@ -165,7 +129,7 @@ impl FunctionScaler {
                 Err(err)=>{
                     return FunctionScaleResult {
                         Available: false,
-                        Error : err,
+                        Error : Err(err),
                         Found: true,
                         Duration: start.elapsed(),
                     }
@@ -176,7 +140,7 @@ impl FunctionScaler {
                 //log print to be done
                 return FunctionScaleResult {
                     Available: true,
-                    Error : ScalingError::None,
+                    Error : Ok(()),
                     Found: true,
                     Duration: start.elapsed(),
                 }
@@ -194,7 +158,7 @@ impl FunctionScaler {
                 Err(err)=>{
                     return FunctionScaleResult {
                         Available: false,
-                        Error : err,
+                        Error : Err(err),
                         Found: true,
                         Duration: start.elapsed(),
                     }
@@ -205,7 +169,7 @@ impl FunctionScaler {
                 //log print to be done
                 return FunctionScaleResult {
                     Available: true,
-                    Error : ScalingError::None,
+                    Error : Ok(()),
                     Found: true,
                     Duration: start.elapsed(),
                 }
@@ -214,7 +178,7 @@ impl FunctionScaler {
         }
         return FunctionScaleResult {
             Available: true,
-            Error : ScalingError::None,
+            Error : Ok(()),
             Found: true,
             Duration: start.elapsed(),
         }
